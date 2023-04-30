@@ -29,7 +29,7 @@ def initRKNN(rknnModel="./rknnModel/yolov5s.rknn", id=0):
 def initRKNNs(rknnModel="./rknnModel/yolov5s.rknn", TPEs=1):
     rknn_list = []
     for i in range(TPEs):
-        rknn_list.append(initRKNN(rknnModel, i % TPEs))
+        rknn_list.append(initRKNN(rknnModel, i % 3))
     return rknn_list
 
 

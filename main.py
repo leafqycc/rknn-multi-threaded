@@ -8,7 +8,7 @@ cap = cv2.VideoCapture('./video/islandBenchmark.mp4')
 # cap = cv2.VideoCapture(0)
 modelPath = "./rknnModel/yolov5s.rknn"
 # 线程数
-TPEs = 5
+TPEs = 6
 # 初始化rknn池
 pool = rknnPoolExecutor(
     rknnModel=modelPath,
