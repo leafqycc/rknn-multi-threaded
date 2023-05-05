@@ -2,6 +2,7 @@
 * 使用多线程异步操作rknn模型, 提高rk3588/rk3588s的NPU使用率, 进而提高推理帧数
 * 使用**yolov5s**和**新宝岛**进行演示, 理论上修改代码后可适用于大部分模型与应用场景 (这里只测试过resnet, 其中resnet50推理速度约为280帧) 
 * rk3568之类的应该也能借此提高NPU使用率, 但是作者本人并没有rk3568开发板......
+* [c++](https://github.com/leafqycc/rknn-cpp-Multithreading)实现, [yolov5s-silu](https://github.com/rockchip-linux/rknn-toolkit2/tree/master/examples/onnx/yolov5) 模型六线程下性能提升约55%(45→71),CPU占用降低约50%(80→40), 温度降低约15°(80→65), 官方[yolov5s-relu](https://github.com/rockchip-linux/rknpu2/tree/master/examples/rknn_yolov5_demo/model/RK3588)优化模型六线程帧数为101帧,理论上自训练relu模型大概在120-140之间
 
 # 更新说明
 * 修复rknnpool.py中NPU调用不均的BUG
