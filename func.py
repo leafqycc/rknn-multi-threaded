@@ -13,8 +13,9 @@ CLASSES = ("person", "bicycle", "car", "motorbike ", "aeroplane ", "bus ", "trai
            "oven ", "toaster", "sink", "refrigerator ", "book", "clock", "vase", "scissors ", "teddy bear ", "hair drier", "toothbrush ")
 
 
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
+# 
+# def sigmoid(x):
+#     return 1 / (1 + np.exp(-x))
 
 
 def xywh2xyxy(x):
@@ -32,12 +33,12 @@ def process(input, mask, anchors):
     anchors = [anchors[i] for i in mask]
     grid_h, grid_w = map(int, input.shape[0:2])
 
-    box_confidence = sigmoid(input[..., 4])
+    box_confidence = input[..., 4]
     box_confidence = np.expand_dims(box_confidence, axis=-1)
 
-    box_class_probs = sigmoid(input[..., 5:])
+    box_class_probs = input[..., 5:]
 
-    box_xy = sigmoid(input[..., :2])*2 - 0.5
+    box_xy = input[..., :2] *2 - 0.5
 
     col = np.tile(np.arange(0, grid_w), grid_w).reshape(-1, grid_w)
     row = np.tile(np.arange(0, grid_h).reshape(-1, 1), grid_h)
@@ -47,7 +48,7 @@ def process(input, mask, anchors):
     box_xy += grid
     box_xy *= int(IMG_SIZE/grid_h)
 
-    box_wh = pow(sigmoid(input[..., 2:4])*2, 2)
+    box_wh = pow(input[..., 2:4] *2, 2)
     box_wh = box_wh * anchors
 
     return np.concatenate((box_xy, box_wh), axis=-1), box_confidence, box_class_probs
@@ -171,10 +172,37 @@ def draw(image, boxes, scores, classes):
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.6, (0, 0, 255), 2)
 
+def letterbox(im, new_shape=(640, 640), color=(0, 0, 0)):
+    shape = im.shape[:2]  # current shape [height, width]
+    if isinstance(new_shape, int):
+        new_shape = (new_shape, new_shape)
+
+    r = min(new_shape[0] / shape[0], new_shape[1] / shape[1])
+
+    ratio = r, r  # width, height ratios
+    new_unpad = int(round(shape[1] * r)), int(round(shape[0] * r))
+    dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - \
+        new_unpad[1]  # wh padding
+
+    dw /= 2  # divide padding into 2 sides
+    dh /= 2
+
+    if shape[::-1] != new_unpad:  # resize
+        im = cv2.resize(im, new_unpad, interpolation=cv2.INTER_LINEAR)
+    top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
+    left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
+    im = cv2.copyMakeBorder(im, top, bottom, left, right,
+                            cv2.BORDER_CONSTANT, value=color)  # add border
+    return im
+    # return im, ratio, (dw, dh)
+
 def myFunc(rknn_lite, IMG):
-    img = cv2.cvtColor(IMG, cv2.COLOR_BGR2RGB)
-    img = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
-    outputs = rknn_lite.inference(inputs=[img])
+    IMG = cv2.cvtColor(IMG, cv2.COLOR_BGR2RGB)
+    # 等比例缩放
+    # IMG = letterbox(IMG)
+    # 强制放缩
+    IMG = cv2.resize(IMG, (IMG_SIZE, IMG_SIZE))
+    outputs = rknn_lite.inference(inputs=[IMG])
 
     input0_data = outputs[0].reshape([3, -1]+list(outputs[0].shape[-2:]))
     input1_data = outputs[1].reshape([3, -1]+list(outputs[1].shape[-2:]))
@@ -187,7 +215,7 @@ def myFunc(rknn_lite, IMG):
 
     boxes, classes, scores = yolov5_post_process(input_data)
 
-    img_1 = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    IMG = cv2.cvtColor(IMG, cv2.COLOR_RGB2BGR)
     if boxes is not None:
-        draw(img_1, boxes, scores, classes)
-    return img_1
+        draw(IMG, boxes, scores, classes)
+    return IMG
