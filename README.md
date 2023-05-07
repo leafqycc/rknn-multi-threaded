@@ -1,8 +1,7 @@
 # 简介
 * 使用多线程异步操作rknn模型, 提高rk3588/rk3588s的NPU使用率, 进而提高推理帧数
-* 使用**yolov5s**和**新宝岛**进行演示, 理论上修改代码后可适用于大部分模型与应用场景 (这里只测试过resnet, 其中resnet50推理速度约为280帧) 
 * rk3568之类的应该也能借此提高NPU使用率, 但是作者本人并没有rk3568开发板......
-* [c++](https://github.com/leafqycc/rknn-cpp-Multithreading)实现, [yolov5s-silu](https://github.com/rockchip-linux/rknn-toolkit2/tree/master/examples/onnx/yolov5) 模型六线程下性能提升约55%(45→71),CPU占用降低约50%(80→40), 温度降低约15°(80→65), 官方[yolov5s-relu](https://github.com/rockchip-linux/rknpu2/tree/master/examples/rknn_yolov5_demo/model/RK3588)优化模型六线程帧数为101帧,理论上自训练relu模型大概在120-140之间
+* [c++](https://github.com/leafqycc/rknn-cpp-Multithreading)实现, [yolov5s-silu](https://github.com/rockchip-linux/rknn-toolkit2/tree/master/examples/onnx/yolov5) 六线程下性能提升55%(45→71),CPU占用降低约50%(80→40), 温度降低约12°(77→65), 官方[yolov5s-relu](https://github.com/rockchip-linux/rknpu2/tree/master/examples/rknn_yolov5_demo/model/RK3588)优化模型六线程帧数为101帧,理论上relu-sigmoid模型大概在120-140之间
 
 # 更新说明
 * 修复rknnpool.py中NPU调用不均的BUG
@@ -24,8 +23,9 @@
 # 多线程模型帧率测试
 * 使用performance.sh进行CPU/NPU定频尽量减少误差
 * 测试模型来源: 
-* [yolov5s-silu](https://github.com/rockchip-linux/rknn-toolkit2/tree/master/examples/onnx/yolov5) 
-* yolov5s-relu 某群友
+* [yolov5s-silu](https://github.com/rockchip-linux/rknn-toolkit2/tree/master/examples/onnx/yolov5)
+* [yolov5s-relu](https://github.com/rockchip-linux/rknpu2/tree/master/examples/rknn_yolov5_demo/model/RK3588)
+* yolov5s-relu-sigmoid 某群友
 * [resnet18_for_rk3588](https://github.com/rockchip-linux/rknn-toolkit2/tree/master/rknn_toolkit_lite2/examples/inference_with_lite) 
 * [resnet26](https://github.com/pprp/timm) 
 * [resnet50](https://github.com/pprp/timm)
@@ -34,14 +34,15 @@
 |  模型\线程数   | 1  | 三核并用  |  2   | 3  |  4  | 5  | 6  | 7  | 8  | 9  |
 |  ----  | ----  |  ----  | ----  |  ----  | ----  | ----  | ----  | ----  | ----  | ----  |
 | Yolov5s - silu  | 13.4159 | 14.9185  | 26.0832 | 35.8814  | 38.1729 | 43.2117 | 45.5549 | 45.2401 | 45.5819 | 46.4229 |
-| Yolov5s - relu  |  |  |  |  |  | 83.8213 |  |  |  |  |
+| Yolov5s - relu  | 16.0239 |  | 29.5694 | 41.4619 | 44.7837 | 50.0117 | 50.3453 |  |  |  |
+| Yolov5s-relu-sigmoid  |  |  |  |  |  | 83.8213 |  |  |  |  |
 | resnet18  |  |  |  | 288.9171 |  |  | 483.8374 |  |  | 577.6006 |
 | resnet26  |  |  |  | 233.1631 |  |  | 394.8324 |  |  | 420.1080 |
 | resnet50  |  |  |  | 186.1753 |  |  | 259.8894 |  |  | 284.4917 |
 
 # 补充
-* 请注意由于多线程下CPU, NPU占用提高, **核心温度相应也会增高**, 请做好散热措施。 这里推荐开3线程, 30帧为大多数某宝摄像头的帧数, 实测小铜片散热下运行十分钟温度约为63°
-* 测试模型激活函数为silu, 此激活函数量化类型为float16, 导致推理过程中使用CPU进行计算, 量化效果较糟。 将激活函数换为relu, 可以在牺牲一点精度的情况下获得巨大性能提升, 群友测试约为**80-83帧**, c++优化后理论或许有上百? 详情可看[蓝灵风](https://www.bilibili.com/video/BV1sM4y1D7Q1/?spm_id_from=333.337.search-card.all.click)的演示视频
+* 多线程下CPU, NPU占用较高, **核心温度相应增高**, 请做好散热。 推荐开3线程, 30帧为大多数某宝摄像头的帧数, 实测小铜片散热下运行十分钟温度约为63°
+* 测试模型激活函数为silu, 其量化类型为float16, 量化效果较糟。将激活函数换为relu, 可以在牺牲一点精度的情况下获得较大性能提升。 详情可见[蓝灵风](https://www.bilibili.com/video/BV1sM4y1D7Q1/?spm_id_from=333.337.search-card.all.click)
 * 性能劣化原因猜想：
     1.  python的GIL为伪多线程, 换为c++或许在8线程前仍有较大提升
     2.  rk3588的CPU性能跟不上, 对OpenCV绘框部分做c++优化或许有提升
@@ -50,3 +51,4 @@
 * https://github.com/ultralytics/yolov5
 * https://github.com/rockchip-linux/rknn-toolkit2
 * https://github.com/pprp/timm
+* https://github.com/rockchip-linux/rknpu2/tree/master/examples/rknn_yolov5_demo/model/RK3588

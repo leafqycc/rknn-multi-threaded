@@ -1,9 +1,6 @@
 #以下代码改自https://github.com/rockchip-linux/rknn-toolkit2/tree/master/examples/onnx/yolov5
 import cv2
 import numpy as np
-from rknnlite.api import RKNNLite
-
-QUANTIZE_ON = True
 
 OBJ_THRESH, NMS_THRESH, IMG_SIZE = 0.25, 0.45, 640
 
@@ -53,9 +50,7 @@ def process(input, mask, anchors):
     box_wh = pow(sigmoid(input[..., 2:4])*2, 2)
     box_wh = box_wh * anchors
 
-    box = np.concatenate((box_xy, box_wh), axis=-1)
-
-    return box, box_confidence, box_class_probs
+    return np.concatenate((box_xy, box_wh), axis=-1), box_confidence, box_class_probs
 
 
 def filter_boxes(boxes, box_confidences, box_class_probs):
@@ -84,11 +79,7 @@ def filter_boxes(boxes, box_confidences, box_class_probs):
     classes = np.argmax(box_class_probs, axis=-1)
     _class_pos = np.where(class_max_score >= OBJ_THRESH)
 
-    boxes = boxes[_class_pos]
-    classes = classes[_class_pos]
-    scores = (class_max_score * box_confidences)[_class_pos]
-
-    return boxes, classes, scores
+    return boxes[_class_pos], classes[_class_pos], (class_max_score * box_confidences)[_class_pos]
 
 
 def nms_boxes(boxes, scores):
@@ -126,8 +117,7 @@ def nms_boxes(boxes, scores):
         ovr = inter / (areas[i] + areas[order[1:]] - inter)
         inds = np.where(ovr <= NMS_THRESH)[0]
         order = order[inds + 1]
-    keep = np.array(keep)
-    return keep
+    return np.array(keep)
 
 
 def yolov5_post_process(input_data):
@@ -164,11 +154,7 @@ def yolov5_post_process(input_data):
     if not nclasses and not nscores:
         return None, None, None
 
-    boxes = np.concatenate(nboxes)
-    classes = np.concatenate(nclasses)
-    scores = np.concatenate(nscores)
-
-    return boxes, classes, scores
+    return np.concatenate(nboxes), np.concatenate(nclasses), np.concatenate(nscores)
 
 
 def draw(image, boxes, scores, classes):
@@ -178,51 +164,21 @@ def draw(image, boxes, scores, classes):
         # print('box coordinate left,top,right,down: [{}, {}, {}, {}]'.format(top, left, right, bottom))
         top = int(top)
         left = int(left)
-        right = int(right)
-        bottom = int(bottom)
 
-        cv2.rectangle(image, (top, left), (right, bottom), (255, 0, 0), 2)
+        cv2.rectangle(image, (top, left), (int(right), int(bottom)), (255, 0, 0), 2)
         cv2.putText(image, '{0} {1:.2f}'.format(CLASSES[cl], score),
                     (top, left - 6),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.6, (0, 0, 255), 2)
-
-
-def letterbox(im, new_shape=(640, 640), color=(0, 0, 0)):
-    shape = im.shape[:2]  # current shape [height, width]
-    if isinstance(new_shape, int):
-        new_shape = (new_shape, new_shape)
-
-    r = min(new_shape[0] / shape[0], new_shape[1] / shape[1])
-
-    ratio = r, r  # width, height ratios
-    new_unpad = int(round(shape[1] * r)), int(round(shape[0] * r))
-    dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - \
-        new_unpad[1]  # wh padding
-
-    dw /= 2  # divide padding into 2 sides
-    dh /= 2
-
-    if shape[::-1] != new_unpad:  # resize
-        im = cv2.resize(im, new_unpad, interpolation=cv2.INTER_LINEAR)
-    top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
-    left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-    im = cv2.copyMakeBorder(im, top, bottom, left, right,
-                            cv2.BORDER_CONSTANT, value=color)  # add border
-    return im, ratio, (dw, dh)
 
 def myFunc(rknn_lite, IMG):
     img = cv2.cvtColor(IMG, cv2.COLOR_BGR2RGB)
     img = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
     outputs = rknn_lite.inference(inputs=[img])
 
-    input0_data = outputs[0]
-    input1_data = outputs[1]
-    input2_data = outputs[2]
-
-    input0_data = input0_data.reshape([3, -1]+list(input0_data.shape[-2:]))
-    input1_data = input1_data.reshape([3, -1]+list(input1_data.shape[-2:]))
-    input2_data = input2_data.reshape([3, -1]+list(input2_data.shape[-2:]))
+    input0_data = outputs[0].reshape([3, -1]+list(outputs[0].shape[-2:]))
+    input1_data = outputs[1].reshape([3, -1]+list(outputs[1].shape[-2:]))
+    input2_data = outputs[2].reshape([3, -1]+list(outputs[2].shape[-2:]))
 
     input_data = list()
     input_data.append(np.transpose(input0_data, (2, 3, 0, 1)))

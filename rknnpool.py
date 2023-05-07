@@ -50,10 +50,8 @@ class rknnPoolExecutor():
     def get(self):
         if self.queue.empty():
             return None, False
-        temp = []
-        temp.append(self.queue.get())
-        for frame in as_completed(temp):
-            return frame.result(), True
+        fut = self.queue.get()
+        return fut.result(), True
 
     def release(self):
         self.pool.shutdown()
