@@ -9,9 +9,9 @@
 
 # 使用说明
 ### 演示
-  * 将仓库拉取至本地, 并将Releases中的演示视频720p60hz.mp4放于video目录下后运行main.py查看演示示例
-  * 运行rkcat.sh可以查看当前温度与NPU占用
+  * 将仓库拉取至本地, 并将Releases中的演示视频放于项目根目录下, 运行main.py查看演示示例
   * 切换至root用户运行performance.sh可以进行定频操作(约等于开启性能模式)
+  * 运行rkcat.sh可以查看当前温度与NPU占用
 ### 部署应用
   * 修改main.py下的modelPath为你自己的模型所在路径
   * 修改main.py下的cap为你想要运行的视频/摄像头

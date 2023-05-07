@@ -4,7 +4,7 @@ from rknnpool import rknnPoolExecutor
 # 图像处理函数，实际应用过程中需要自行修改
 from func import myFunc
 
-cap = cv2.VideoCapture('./video/720p60hz.mp4')
+cap = cv2.VideoCapture('./720p60hz.mp4')
 # cap = cv2.VideoCapture(0)
 modelPath = "./rknnModel/yolov5s_relu_tk2_RK3588_i8.rknn"
 # 线程数, 增大可提高帧率
